@@ -6,26 +6,35 @@ using namespace std;
 
 void initGPIO(void){
     wiringPiSetup();
+    printf("setup");
     
-    const int BTNS[] = {7,11,12,13};
+    const int BTNS[] = {7,0,2,3};
 
     for(int j=0; j < sizeof(BTNS)/sizeof(BTNS[0]); j++){
             pinMode(BTNS[j], INPUT);
-            pullUpDnControl(BTNS[j], PUD_UP);
+            pullUpDnControl(BTNS[j], PUD_DOWN);
         }
 
-    int wiringPiISR(BTNS[1],INT_EDGE_RISING,button_1(void));
-	int wiringPiISR(BTNS[2],INT_EDGE_RISING, button_2(void));
-    int wiringPiISR(BTNS[3],INT_EDGE_RISING,button_3(void));
-	int wiringPiISR(BTNS[4],INT_EDGE_RISING, button_4(void));
+ 
+    if(wiringPiISR(7,INT_EDGE_RISING,&button_1) < 0 || wiringPiISR(0,INT_EDGE_RISING, &button_2) < 0 || wiringPiISR(2,INT_EDGE_RISING,&button_3) < 0 || wiringPiISR(3,INT_EDGE_RISING, &button_4) < 0)
+    {
+        fprintf (stderr, "Unable to setup ISR: %s\n") ;
+    }
 
 }
 
 int main(void){
 	initGPIO();
+    printf("running");
+    for(;;){
+        printf(".");
+        delay (100);
+    }
+
+    return 0;
 }
 
-void button_1(void)
+void button_1()
 {
     long interruptTime = millis();
 
@@ -36,7 +45,7 @@ void button_1(void)
     lastInterruptTime = interruptTime;
 
 }
-void button_2(void)
+void button_2()
 {
     long interruptTime = millis();
 
@@ -45,7 +54,7 @@ void button_2(void)
     }
     lastInterruptTime = interruptTime;
 }
-void button_3(void)
+void button_3()
 {
     long interruptTime = millis();
 
@@ -54,7 +63,7 @@ void button_3(void)
     }
     lastInterruptTime = interruptTime;
 }
-void button_4(void)
+void button_4()
 {
     long interruptTime = millis();
 

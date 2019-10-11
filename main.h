@@ -13,9 +13,9 @@
 #include <iostream>
 
 void initGPIO(void);
-void button_1(void);
-void button_2(void);
-void button_3(void);
-void button_4(void);
+void button_1();
+void button_2();
+void button_3();
+void button_4();
 
 #endif
