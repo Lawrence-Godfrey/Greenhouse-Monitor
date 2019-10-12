@@ -6,29 +6,64 @@ using namespace std;
 
 void initGPIO(void){
     wiringPiSetup();
-    printf("setup");
-    
-    const int BTNS[] = {7,0,2,3};
+
+    mcp3004Setup(BASE, SPI_CHAN); // 3004 and 3008 are the same 4/8 channels
 
     for(int j=0; j < sizeof(BTNS)/sizeof(BTNS[0]); j++){
             pinMode(BTNS[j], INPUT);
             pullUpDnControl(BTNS[j], PUD_DOWN);
         }
 
+    pinMode(LED,OUTPUT);    
  
     if(wiringPiISR(7,INT_EDGE_RISING,&button_1) < 0 || wiringPiISR(0,INT_EDGE_RISING, &button_2) < 0 || wiringPiISR(2,INT_EDGE_RISING,&button_3) < 0 || wiringPiISR(3,INT_EDGE_RISING, &button_4) < 0)
     {
-        fprintf (stderr, "Unable to setup ISR: %s\n") ;
+        printf("error ISR");
     }
-
 }
 
 int main(void){
 	initGPIO();
-    printf("running");
-    for(;;){
-        printf(".");
-        delay (100);
+    printf ("Running"); 
+    fflush (stdout) ;
+   
+    printf("Temp | Light | Humidity\n");
+    
+    auto start = std::chrono::system_clock::now();
+        
+
+    for(;;){            
+        // Some computation here
+        auto end = std::chrono::system_clock::now();
+
+        std::chrono::duration<double> elapsed_seconds = end-start;
+        std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+
+        std::cout << "finished computation at " << std::ctime(&end_time)
+                << "elapsed time: " << elapsed_seconds.count() << "s\n";
+
+        float light = analogRead(BASE + 0);
+        float humidity = analogRead(BASE + 1)*3.3/1023;
+        float temp = analogRead(BASE + 2)*3.3/(float)1023;
+
+        temp = temp - 0.5;  
+        temp = temp/0.01;
+
+        float vout = (light/(float)1023)*humidity;
+
+        if(vout < 0.65 || vout > 2.65)
+        {
+            digitalWrite (LED, HIGH);
+        }
+        else if(vout > 0.65 && vout <2.65)
+        {
+            digitalWrite (LED, LOW);
+        }
+
+        printf("%f Celsius | %f | %f | %f\n", temp,light,humidity,vout);
+        fflush (stdout);
+        delay (10);
+        
     }
 
     return 0;

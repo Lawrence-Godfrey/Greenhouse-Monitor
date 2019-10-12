@@ -11,6 +11,16 @@
 #include <math.h>
 #include <pthread.h>
 #include <iostream>
+#include <mcp3004.h>
+
+#include <chrono>
+#include <ctime>  
+
+#define BASE 100
+#define SPI_CHAN 0
+
+const int BTNS[] = {7,0,2,3};
+const int LED = 4;
 
 void initGPIO(void);
 void button_1();
