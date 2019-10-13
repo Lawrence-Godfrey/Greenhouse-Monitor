@@ -75,52 +75,58 @@ void initGPIO(void){
 void loop()
 {
     Blynk.run();
+
+    //get current time
     auto end = std::chrono::system_clock::now(); 
-
     std::time_t end_time = std::chrono::system_clock::to_time_t(end);
-
-    float light = analogRead(BASE + 0);
-    float humidity = analogRead(BASE + 1)*3.3/1023;
-    float temp = analogRead(BASE + 2)*3.3/(float)1023;
-
-    temp = temp - 0.5;  
-    temp = temp/0.01;
-
-    float vout = (light/(float)1023)*humidity;
-    
     auto epoch2 = end.time_since_epoch();
     auto value2 = std::chrono::duration_cast<std::chrono::seconds>(epoch2);
     end_value = value2.count();
 
+    //get sensor time
+    float light = analogRead(BASE + 0);
+    float humidity = analogRead(BASE + 1)*3.3/1023;
+    float temp = analogRead(BASE + 2)*3.3/(float)1023;
+
+    // convert to degrees
+    temp = temp - 0.5;  
+    temp = temp/0.01;
+
+    // calculate vout for DAC
+    float vout = (light/(float)1023)*humidity;
+    
+    // calculate runtime
     dif =end_value-start_value; 
 
+    // get system time and convert to char buffer
     struct tm * timeinfo;
     char buffer [80];
-
     time (&end_time);
     timeinfo = localtime (&end_time);
-
     strftime (buffer,80,"%T",timeinfo);
 
+    // create char buffer and shift vout into part of each buffer so that 16 bits can be output to DAC
     unsigned char vout_array[2];
-
     char ch1 = (int)((vout/3.3)*255);
     ch1 = (ch1>>4);
     char ch2 = (int)((vout/3.3)*255);
     ch2 = (ch2<<2);
-            
     vout_array[0] = 0b00110000 | ch1; 
     //Set next 8 bit packet
     vout_array[1] =0b11111100 & ch2;
+
+    //output char buffer to DAC
     wiringPiSPIDataRW (1, vout_array, 2);
 
-    if((vout < 0.65 || vout > 2.65) && (((dif-time_since_last_alarm)/(float)60)>0.2))
+    //set LED and blynk LED high under these conditions and if time since last alarm is more than 3 minutes
+    if((vout < 0.65 || vout > 2.65) && (((dif-time_since_last_alarm)/(float)60)>3))
     {
         time_since_last_alarm = dif;
         digitalWrite (LED, HIGH);
         Blynk.virtualWrite(V7,255);
     }
     
+    //display to terminal and Blynk if not stopped
     if(!stopped)
     {
         std::cout <<  buffer << " | " << setw(6) << dif <<" s | "<<setprecision(2)<< setw(8)<< humidity << " | " << setw(9)<< temp <<" C | "<<setprecision(4)<< setw(5) << light << " | "<<setprecision(2) << setw(4)<< vout<< " V "<< "\n";
@@ -135,13 +141,6 @@ void loop()
         Blynk.virtualWrite(V4, temp);
         Blynk.virtualWrite(V5, vout);
     }
-
-    
-    //   Blynk.virtualWrite(V6, dif ," s | ", humidity , " | " ,  temp ," C | ", light , " | ", vout, " V \n" )
-    //   terminal.write( dif ," s | ", humidity , " | " ,  temp ," C | ", light , " | ", vout, " V \n");
-    
-      
-    
     
     tmr.run();
 }
@@ -154,20 +153,15 @@ int main(int argc, char* argv[])
     initGPIO();
     terminal.clear();
 
+    // get current time and convert to long start_value
     auto start = std::chrono::system_clock::now();
     auto epoch = start.time_since_epoch();
     auto value = std::chrono::duration_cast<std::chrono::seconds>(epoch);
     start_value = value.count();
 
+    //set time since last alarm to negative 3 minutes initially 
     time_since_last_alarm = (-1*3*60);
-
-    // char line[80];
-    // int linef = sprintf(line,"_______________________________________________________________\n");
-    // terminal.write(line,80);
-    // terminal.write("RTC TIME | Sys Time | Humidity | Temperature | Light | DAC out \n");
-    // terminal.write("_______________________________________________________________\n");
-
-        
+       
     while(true) {
         loop();
         delay (FREQ[freq_index]);
