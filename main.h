@@ -19,13 +19,14 @@
 #define BASE 100
 #define SPI_CHAN 0
 
+const int FREQ[] = {1000,2000,5000};
 const int BTNS[] = {7,0,2,3};
 const int LED = 4;
 
 void initGPIO(void);
-void button_1();
-void button_2();
-void button_3();
-void button_4();
+void dismiss();
+void change_freq();
+void stop();
+void reset();
 
 #endif
